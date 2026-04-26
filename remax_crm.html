@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM RE/MAX — Panel Operativo</title>
+<style>
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --surface2: #f0ede8;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.18);
+    --text: #1a1a18;
+    --muted: #6b6a66;
+    --hint: #9a9895;
+    --accent: #cc2d2d;
+    --accent2: #e8451e;
+    --blue: #1a5fa8;
+    --green: #1e7a3e;
+    --amber: #b86b00;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* HEADER */
+  .header { background: var(--text); color: #fff; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .header-brand { display: flex; align-items: center; gap: 12px; }
+  .logo { background: var(--accent); color: #fff; font-weight: 800; font-size: 14px; padding: 5px 10px; border-radius: 4px; letter-spacing: .05em; }
+  .header-name { font-size: 15px; font-weight: 600; color: #fff; }
+  .header-sub { font-size: 11px; color: rgba(255,255,255,0.5); }
+  .header-date { font-size: 12px; color: rgba(255,255,255,0.5); }
+
+  /* NAV */
+  .nav { background: var(--surface); border-bottom: 1px solid var(--border); overflow-x: auto; white-space: nowrap; }
+  .nav-inner { display: flex; padding: 0 20px; }
+  .nav-btn { padding: 13px 16px; font-size: 13px; font-weight: 500; color: var(--muted); background: none; border: none; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .15s; }
+  .nav-btn:hover { color: var(--text); }
+  .nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* PANELS */
+  .panel { display: none; padding: 20px 20px 40px; max-width: 1100px; margin: 0 auto; }
+  .panel.active { display: block; }
+
+  /* METRICS */
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .metric { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .metric-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+  .metric-value { font-size: 26px; font-weight: 700; color: var(--text); line-height: 1; }
+  .metric-sub { font-size: 11px; color: var(--hint); margin-top: 4px; }
+  .metric.accent { border-left: 3px solid var(--accent); }
+
+  /* SECTION TITLE */
+  .section-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin: 24px 0 12px; }
+
+  /* TOOLBAR */
+  .toolbar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+  .toolbar input, .toolbar select { font-size: 13px; padding: 7px 11px; border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); outline: none; }
+  .toolbar input:focus, .toolbar select:focus { border-color: var(--accent); }
+  .toolbar input { flex: 1; min-width: 180px; }
+  .btn { padding: 7px 14px; font-size: 12px; font-weight: 600; border-radius: var(--radius-sm); border: 1px solid var(--border2); background: var(--surface); color: var(--text); cursor: pointer; }
+  .btn:hover { background: var(--surface2); }
+  .btn-accent { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-accent:hover { background: #b02525; }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { padding: 10px 13px; text-align: left; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid var(--border); background: var(--surface2); }
+  td { padding: 9px 13px; border-bottom: 1px solid var(--border); color: var(--text); max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+
+  /* BADGES */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .cat-aplus { background: #1a1a18; color: #ffd700; }
+  .cat-a { background: #1e7a3e; color: #fff; }
+  .cat-b { background: #1a5fa8; color: #fff; }
+  .cat-c { background: #888; color: #fff; }
+  .cat-d { background: #cc2d2d; color: #fff; }
+  .st-pub { background: #d4edda; color: #1e7a3e; }
+  .st-res { background: #cce5ff; color: #1a5fa8; }
+  .st-esc { background: #d0f0c0; color: #145228; }
+  .st-pre { background: #fff3cd; color: #856404; }
+  .st-noc { background: #f8d7da; color: #721c24; }
+  .st-rev { background: #e2d9f3; color: #432874; }
+  .st-foto { background: #fde8d8; color: #7a3a00; }
+  .st-doc { background: #e8e8e8; color: #444; }
+  .st-acm { background: #e0f0ff; color: #1a4fa8; }
+
+  /* PIPELINE KANBAN */
+  .kanban { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; }
+  .k-col { min-width: 190px; max-width: 220px; flex-shrink: 0; }
+  .k-header { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; }
+  .k-count { background: var(--surface2); border-radius: 10px; padding: 1px 7px; font-size: 10px; font-weight: 700; }
+  .k-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 11px; margin-bottom: 7px; border-left: 3px solid var(--accent); }
+  .k-card-name { font-size: 12px; font-weight: 600; color: var(--text); }
+  .k-card-addr { font-size: 11px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .k-card-val { font-size: 12px; font-weight: 700; color: var(--blue); margin-top: 5px; }
+  .k-card-date { font-size: 10px; color: var(--hint); margin-top: 3px; }
+
+  /* GASTOS */
+  .gasto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  @media(max-width:600px){ .gasto-grid { grid-template-columns: 1fr; } }
+  .gasto-cat-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .gasto-cat-row:last-child { border-bottom: none; }
+  .gasto-bar { height: 4px; background: var(--surface2); border-radius: 2px; margin-top: 4px; }
+  .gasto-fill { height: 100%; background: var(--accent); border-radius: 2px; }
+  .gasto-item { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .gasto-item:last-child { border-bottom: none; }
+  .gasto-fecha { color: var(--hint); font-size: 11px; }
+
+  /* REGALOS */
+  .regalo-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 8px; display: flex; gap: 12px; align-items: flex-start; }
+  .regalo-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; background: #fde8d8; }
+  .regalo-name { font-size: 13px; font-weight: 600; }
+  .regalo-tipo { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .regalo-right { margin-left: auto; text-align: right; }
+  .regalo-accion { font-size: 11px; font-weight: 600; color: var(--accent); }
+  .regalo-hora { font-size: 11px; color: var(--hint); }
+
+  /* SEMANAS */
+  .sem-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+  .sem-label { font-size: 11px; color: var(--muted); width: 30px; text-align: right; flex-shrink: 0; }
+  .sem-bar-w { flex: 1; background: var(--surface2); border-radius: 2px; height: 18px; overflow: hidden; position: relative; }
+  .sem-bar { height: 100%; background: var(--accent); border-radius: 2px; opacity: .8; }
+  .sem-val { font-size: 11px; color: var(--muted); width: 90px; flex-shrink: 0; }
+
+  .empty { padding: 40px; text-align: center; color: var(--hint); font-size: 13px; }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 200; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border-radius: var(--radius); padding: 24px; max-width: 480px; width: 90%; max-height: 80vh; overflow-y: auto; }
+  .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+  .form-row { margin-bottom: 12px; }
+  .form-label { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; display: block; }
+  .form-input { width: 100%; padding: 8px 11px; border: 1px solid var(--border2); border-radius: var(--radius-sm); font-size: 13px; background: var(--surface); color: var(--text); }
+  .modal-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-brand">
+    <span class="logo">RE/MAX</span>
+    <div>
+      <div class="header-name">Panel Operativo</div>
+      <div class="header-sub">Sistema CRM Personal</div>
+    </div>
+  </div>
+  <div class="header-date" id="headerDate"></div>
+</div>
+
+<div class="nav">
+  <div class="nav-inner">
+    <button class="nav-btn active" onclick="showPanel('dashboard',this)">📊 Tablero</button>
+    <button class="nav-btn" onclick="showPanel('relaciones',this)">👥 Relaciones</button>
+    <button class="nav-btn" onclick="showPanel('captaciones',this)">🏠 Captaciones</button>
+    <button class="nav-btn" onclick="showPanel('prelisting',this)">📋 Pre-listing</button>
+    <button class="nav-btn" onclick="showPanel('compradores',this)">🔍 Compradores</button>
+    <button class="nav-btn" onclick="showPanel('gastos',this)">💰 Gastos</button>
+    <button class="nav-btn" onclick="showPanel('regalos',this)">🎁 Regalos/Popbys</button>
+    <button class="nav-btn" onclick="showPanel('semanas',this)">📈 Semanas</button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="panel active" id="panel-dashboard">
+  <div class="metrics">
+    <div class="metric accent">
+      <div class="metric-label">Contactos base</div>
+      <div class="metric-value" id="m-contactos">95</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Captaciones</div>
+      <div class="metric-value" id="m-cap">—</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Pre-listing</div>
+      <div class="metric-value" id="m-pre">—</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Compradores</div>
+      <div class="metric-value">3</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Cierres 2025</div>
+      <div class="metric-value">2.5</div>
+      <div class="metric-sub">$23.010 bruto</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Vol. captado</div>
+      <div class="metric-value" style="font-size:18px">$10.2M</div>
+    </div>
+  </div>
+
+  <div class="section-title">Captaciones por estado</div>
+  <div id="dash-estados" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px"></div>
+
+  <div class="section-title">Últimas semanas — actividad</div>
+  <div id="dash-semanas"></div>
+
+  <div class="section-title">Gastos resumen</div>
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Marzo 2026</div>
+      <div style="font-size:20px;font-weight:700">$954.800</div>
+      <div style="font-size:11px;color:var(--hint)">+ $300 USD (oficina)</div>
+    </div>
+    <div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Abril 2026 (al 22/4)</div>
+      <div style="font-size:20px;font-weight:700">$870.723</div>
+      <div style="font-size:11px;color:var(--hint)">+ $400 USD préstamos</div>
+    </div>
+  </div>
+</div>
+
+<!-- RELACIONES -->
+<div class="panel" id="panel-relaciones">
+  <div class="toolbar">
+    <input type="text" id="rel-search" placeholder="Buscar nombre o celular..." oninput="renderRelaciones()">
+    <select id="rel-cat" onchange="renderRelaciones()">
+      <option value="">Todas las categorías</option>
+      <option value="A+">A+ — Top referidores</option>
+      <option value="A">A — Muy activos</option>
+      <option value="B">B — Activos</option>
+      <option value="C">C — En desarrollo</option>
+      <option value="D">D — Bajo potencial</option>
+    </select>
+    <button class="btn btn-accent" onclick="openModal('rel')">+ Nuevo contacto</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Cat.</th>
+          <th>Celular</th>
+          <th>Último contacto</th>
+          <th>Próx. contacto</th>
+          <th>Observación</th>
+        </tr>
+      </thead>
+      <tbody id="rel-body"></tbody>
+    </table>
+  </div>
+  <div style="margin-top:8px;font-size:12px;color:var(--hint)" id="rel-count"></div>
+</div>
+
+<!-- CAPTACIONES -->
+<div class="panel" id="panel-captaciones">
+  <div class="toolbar">
+    <input type="text" id="cap-search" placeholder="Buscar cliente o dirección..." oninput="renderCaptaciones()">
+    <select id="cap-status" onchange="renderCaptaciones()">
+      <option value="">Todos los estados</option>
+      <option value="PUBLICADA">Publicada</option>
+      <option value="RESERVADA">Reservada</option>
+      <option value="ESCRIBANIA">Escribanía</option>
+      <option value="PRESENTADO">Presentado</option>
+      <option value="NO CAPTADO">No captado</option>
+      <option value="FOTOGRAFIA">Fotografía</option>
+      <option value="DOCUMENTACION">Documentación</option>
+      <option value="REVISAR">Revisar</option>
+      <option value="HACER ACM">Hacer ACM</option>
+      <option value="PRESENTAR ACM">Presentar ACM</option>
+    </select>
+    <select id="cap-view" onchange="renderCaptaciones()">
+      <option value="tabla">Vista tabla</option>
+      <option value="kanban">Vista kanban</option>
+    </select>
+    <button class="btn btn-accent" onclick="openModal('cap')">+ Nueva captación</button>
+  </div>
+  <div id="cap-content"></div>
+</div>
+
+<!-- PRE-LISTING -->
+<div class="panel" id="panel-prelisting">
+  <div class="toolbar">
+    <input type="text" id="pre-search" placeholder="Buscar..." oninput="renderPrelisting()">
+    <button class="btn btn-accent" onclick="openModal('pre')">+ Nuevo pre-listing</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Celular</th>
+          <th>Propiedad</th>
+          <th>Estado</th>
+          <th>Origen</th>
+          <th>Próx. contacto</th>
+          <th>Notas</th>
+        </tr>
+      </thead>
+      <tbody id="pre-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- COMPRADORES -->
+<div class="panel" id="panel-compradores">
+  <div class="toolbar">
+    <button class="btn btn-accent" onclick="openModal('comp')">+ Nuevo comprador</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Celular</th>
+          <th>Zona / tipo</th>
+          <th>Crédito</th>
+          <th>Monto</th>
+          <th>Último contacto</th>
+          <th>Observación</th>
+        </tr>
+      </thead>
+      <tbody id="comp-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- GASTOS -->
+<div class="panel" id="panel-gastos">
+  <div class="toolbar">
+    <select id="gasto-mes" onchange="renderGastos()">
+      <option value="marzo">Marzo 2026</option>
+      <option value="abril">Abril 2026</option>
+    </select>
+    <button class="btn btn-accent" onclick="openModal('gasto')">+ Nuevo gasto</button>
+  </div>
+  <div class="gasto-grid" id="gasto-resumen"></div>
+  <div class="section-title">Detalle de gastos</div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fecha</th><th>Categoría</th><th>Monto</th><th>Acum.</th></tr></thead>
+      <tbody id="gasto-body"></tbody>
+    </table>
+  </div>
+  <div id="gasto-prestamos" style="margin-top:20px"></div>
+</div>
+
+<!-- REGALOS -->
+<div class="panel" id="panel-regalos">
+  <div class="toolbar">
+    <button class="btn btn-accent" onclick="openModal('regalo')">+ Nuevo regalo/popby</button>
+  </div>
+  <div id="regalos-lista"></div>
+</div>
+
+<!-- SEMANAS -->
+<div class="panel" id="panel-semanas">
+  <div class="section-title">Actividad semanal 2025</div>
+  <div class="table-wrap" style="margin-bottom:20px">
+    <table>
+      <thead><tr><th>Sem.</th><th>Toques</th><th>Cara a cara</th><th>Referidos</th><th>Pre-buying</th><th>Pre-listing</th><th>Vol. ACM</th><th>Captaciones</th><th>Reservas</th><th>Cierres</th><th>$ Bruto</th></tr></thead>
+      <tbody id="sem-body"></tbody>
+    </table>
+  </div>
+  <div class="section-title">Barras de toques por semana</div>
+  <div id="sem-chart"></div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal-box">
+    <div class="modal-title" id="modal-title">Nuevo registro</div>
+    <div id="modal-body"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-accent" onclick="saveModal()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────────
+const STORAGE_KEY = 'remax_crm_v1';
+
+function getStorage() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch(e) { return {}; }
+}
+function setStorage(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+function mergeData(key, defaults) {
+  const s = getStorage();
+  if (!s[key]) { s[key] = defaults; setStorage(s); }
+  return s[key];
+}
+function saveData(key, data) {
+  const s = getStorage(); s[key] = data; setStorage(s);
+}
+
+const DEFAULT_REL = [
+  {id:1,nombre:'Matias Alupin',cat:'A+',cel:'1167971294',gmail:'',nacimiento:'',oficio:'Arquitecto',obs:'Refiere constantemente',ult:'21/07/2025',prox:'',accion:''},
+  {id:2,nombre:'Juancho Sanfilippo',cat:'A+',cel:'1117802716',gmail:'juansanfilippo@gmail.com',nacimiento:'',oficio:'',obs:'Tío — referidor frecuente',ult:'',prox:'',accion:''},
+  {id:3,nombre:'Daniel Raffa',cat:'A',cel:'1144302133',gmail:'',nacimiento:'',oficio:'',obs:'Depto comprado, refiere constantemente',ult:'21/07/2025',prox:'',accion:''},
+  {id:4,nombre:'Hector Saul Culcuy',cat:'A',cel:'1151071983',gmail:'hectorculcuy@yahoo.com',nacimiento:'13/10/1950',oficio:'',obs:'Compró PH en Caceros, refirió 1 vez',ult:'21/07/2025',prox:'',accion:''},
+  {id:5,nombre:'Marcos Gilberto Buccellato',cat:'A',cel:'1165769287',gmail:'marcos@kalliope.com.ar',nacimiento:'06/04/1975',oficio:'',obs:'Compró casa, refirió un lote',ult:'21/07/2025',prox:'',accion:''},
+  {id:6,nombre:'Elizabeth Garofalo',cat:'A',cel:'1141897769',gmail:'',nacimiento:'28/02/1977',oficio:'',obs:'En busca de que refiera u ofrezca PH',ult:'21/07/2025',prox:'',accion:''},
+  {id:7,nombre:'Liliana Beatriz Espindola',cat:'A',cel:'1144457267',gmail:'',nacimiento:'',oficio:'',obs:'Compró PH en Lanuz',ult:'21/07/2025',prox:'',accion:''},
+  {id:8,nombre:'Melina Peñarol Mendez',cat:'A',cel:'1165769248',gmail:'',nacimiento:'13/12/1973',oficio:'',obs:'Vendió lote en v.club, ref pendiente',ult:'21/07/2025',prox:'',accion:''},
+  {id:9,nombre:'Graciela Garay',cat:'A',cel:'1154836023',gmail:'',nacimiento:'',oficio:'',obs:'',ult:'04/08/2025',prox:'',accion:''},
+  {id:10,nombre:'Mariaelena Mongiardino',cat:'B',cel:'1163660494',gmail:'marilen.mongiardino@gmail.com',nacimiento:'02/04/1952',oficio:'',obs:'Casa vendida en Gral Rodriguez',ult:'15/07/2025',prox:'15/08/2025',accion:'Indefinido'},
+  {id:11,nombre:'Juan Carlos Devescovi',cat:'B',cel:'1150286100',gmail:'',nacimiento:'24/01/1954',oficio:'',obs:'Ex esposo de Maria Elena, ref pendiente',ult:'21/07/2025',prox:'',accion:''},
+  {id:12,nombre:'Josefa Ana Armata',cat:'B',cel:'1167404983',gmail:'',nacimiento:'27/09/1958',oficio:'',obs:'Mamá de cliente que compró y vendió dep',ult:'10/07/2025',prox:'',accion:''},
+  {id:13,nombre:'Domingo Ramon Albornoz',cat:'B',cel:'1135248422',gmail:'',nacimiento:'28/11/1960',oficio:'',obs:'Vendió una casa en Ituzaingo',ult:'21/07/2025',prox:'',accion:''},
+  {id:14,nombre:'Pablo Tapia',cat:'B',cel:'1165188888',gmail:'',nacimiento:'03/11/1977',oficio:'Médico',obs:'',ult:'21/07/2025',prox:'',accion:''},
+  {id:15,nombre:'Maria De Los Angeles Badillo',cat:'B',cel:'1137930249',gmail:'',nacimiento:'30/03/1983',oficio:'',obs:'Ref aceptada y pendiente',ult:'21/07/2025',prox:'',accion:''},
+  {id:16,nombre:'Fabio Acuña',cat:'B',cel:'1164661625',gmail:'',nacimiento:'01/03/1996',oficio:'',obs:'Hablar próxima vez, pendiente',ult:'',prox:'',accion:''},
+  {id:17,nombre:'Juan Risso',cat:'B',cel:'1140275555',gmail:'',nacimiento:'',oficio:'',obs:'Vendía casa Guemes 1320',ult:'10/07/2025',prox:'',accion:''},
+  {id:18,nombre:'Gonzalo Fatne',cat:'B',cel:'1122488981',gmail:'',nacimiento:'',oficio:'',obs:'Ref de Cristian Abad, vendía casa en Pontevedra',ult:'21/07/2025',prox:'',accion:''},
+  {id:19,nombre:'Miriam Amiga Mir',cat:'B',cel:'1154794293',gmail:'',nacimiento:'',oficio:'',obs:'Acepta ofrecer alquiler en zona, pendiente',ult:'21/07/2025',prox:'',accion:''},
+  {id:20,nombre:'Maximiliano Sinamom',cat:'B',cel:'1161352094',gmail:'',nacimiento:'',oficio:'',obs:'Hacer regalo — EN CONTACTO',ult:'',prox:'',accion:''},
+  {id:21,nombre:'Marita Balvanera',cat:'B',cel:'1167003288',gmail:'',nacimiento:'',oficio:'',obs:'Mostré deptos en Balvanera, ref pendiente',ult:'21/07/2025',prox:'',accion:''},
+  {id:22,nombre:'Claudio Fusca',cat:'B',cel:'1155114830',gmail:'',nacimiento:'',oficio:'',obs:'Hermano de Marcela Fusca, ref pendiente',ult:'21/07/2025',prox:'',accion:''},
+  {id:23,nombre:'Carlos ref',cat:'B',cel:'1166398115',gmail:'',nacimiento:'',oficio:'',obs:'Vendía PH en Ciudadela, ref de Julian Abad',ult:'21/07/2025',prox:'',accion:''},
+  {id:24,nombre:'Raul Ruiz',cat:'B',cel:'1158697511',gmail:'',nacimiento:'',oficio:'',obs:'Hijo de Roberto Ruiz — EN CONTACTO',ult:'',prox:'',accion:''},
+  {id:25,nombre:'Jorge .',cat:'B',cel:'1165885942',gmail:'',nacimiento:'',oficio:'',obs:'Vendía PH en Villa Bosch — NO CONTESTA',ult:'21/07/2025',prox:'',accion:''},
+  {id:26,nombre:'Lucila Calzon Flores',cat:'B',cel:'1159275396',gmail:'',nacimiento:'',oficio:'',obs:'Suegra de Juliana Franco, volver a contactar',ult:'21/07/2025',prox:'',accion:''},
+  {id:27,nombre:'Beatriz Juan De Garay',cat:'B',cel:'1159483387',gmail:'',nacimiento:'',oficio:'',obs:'Vende casa en Juan de Garay, ref de Alpuin',ult:'28/07/2025',prox:'',accion:''},
+  {id:28,nombre:'Roberto Ruiz',cat:'B',cel:'1148899075',gmail:'',nacimiento:'31/07/1948',oficio:'',obs:'EN CONTACTO',ult:'',prox:'',accion:''},
+  {id:29,nombre:'Fabian Caratzu',cat:'B',cel:'1121628451',gmail:'',nacimiento:'06/11/1966',oficio:'',obs:'Ref aceptada, reunión pendiente — llevar presente',ult:'21/07/2025',prox:'',accion:''},
+  {id:30,nombre:'Christian Abad',cat:'B',cel:'1141415037',gmail:'christian.abad@inpresma.com',nacimiento:'29/06/1974',oficio:'',obs:'Marido de Eli, socio de NAMAI',ult:'',prox:'',accion:''},
+  {id:31,nombre:'Pablo Pittaluga',cat:'B',cel:'1140606291',gmail:'',nacimiento:'06/06/1983',oficio:'',obs:'Compró casa, esperando escritura',ult:'',prox:'',accion:''},
+  {id:32,nombre:'Everth Soto',cat:'B',cel:'1161446148',gmail:'',nacimiento:'27/07/1988',oficio:'',obs:'Volver a contactar — SIN RESPUESTA',ult:'21/07/2025',prox:'',accion:''},
+  {id:33,nombre:'Martin Cappiello',cat:'B',cel:'1159363616',gmail:'',nacimiento:'',oficio:'',obs:'En busca de referido, pendiente',ult:'21/07/2025',prox:'',accion:''},
+  {id:34,nombre:'Leonel Fernández',cat:'B',cel:'1154764440',gmail:'',nacimiento:'',oficio:'',obs:'',ult:'04/08/2025',prox:'',accion:''},
+  {id:35,nombre:'Juan Ituzaingo',cat:'B',cel:'1131244103',gmail:'',nacimiento:'',oficio:'',obs:'',ult:'04/08/2025',prox:'',accion:''},
+  {id:36,nombre:'Agustin Felix Friaz',cat:'B',cel:'1138307189',gmail:'',nacimiento:'',oficio:'',obs:'',ult:'04/08/2025',prox:'',accion:''},
+  {id:37,nombre:'Sebastian Paurelli',cat:'B',cel:'1144350865',gmail:'',nacimiento:'',oficio:'',obs:'Vendedor activo',ult:'04/08/2025',prox:'',accion:''},
+  {id:38,nombre:'Horacio Froncezze',cat:'B',cel:'1137042343',gmail:'',nacimiento:'',oficio:'',obs:'',ult:'04/08/2025',prox:'',accion:''},
+  {id:39,nombre:'Silvia Prima Juan T',cat:'C',cel:'1157400306',gmail:'',nacimiento:'',oficio:'',obs:'Prima de Juan T — SIN RESPUESTA',ult:'',prox:'',accion:''},
+  {id:40,nombre:'Guillermo Rames',cat:'C',cel:'1149147392',gmail:'',nacimiento:'',oficio:'',obs:'Amigo de Luciano DL, vendía en Tesei/Moron',ult:'28/07/2025',prox:'',accion:''},
+  {id:41,nombre:'Cristian Pereyra',cat:'C',cel:'1158751172',gmail:'',nacimiento:'',oficio:'',obs:'Ex pareja de Badillo, vendió Soler 571',ult:'28/07/2025',prox:'',accion:''},
+  {id:42,nombre:'Beatris (guardia)',cat:'C',cel:'1167241048',gmail:'',nacimiento:'',oficio:'',obs:'En busca de departamento',ult:'28/07/2025',prox:'',accion:''},
+  {id:43,nombre:'Alberto Costamagno',cat:'C',cel:'1144167663',gmail:'',nacimiento:'',oficio:'Abogado / Director Jurídico',obs:'Vende depto Ramos',ult:'28/07/2025',prox:'',accion:''},
+  {id:44,nombre:'Damian Nestor Kinzler',cat:'C',cel:'1166024931',gmail:'',nacimiento:'14/09/1982',oficio:'',obs:'Vendía lote en Gral Rodriguez — dado de baja',ult:'10/07/2025',prox:'',accion:'SIN RESPUESTA'},
+  {id:45,nombre:'Laura Sillone',cat:'C',cel:'1148888040',gmail:'',nacimiento:'',oficio:'',obs:'Hermana de Mercedes Sillone',ult:'',prox:'',accion:''},
+  {id:46,nombre:'Gustavo Brea',cat:'C',cel:'1158304968',gmail:'',nacimiento:'',oficio:'',obs:'Ref de Luciano DL, vende casa con hermanas en 2026',ult:'',prox:'',accion:'PENDIENTE'},
+  {id:47,nombre:'Ana Laura .',cat:'C',cel:'1166850836',gmail:'',nacimiento:'',oficio:'',obs:'Vendía casa en Chuquisaca Tesei — NO RESPONDIO',ult:'10/06/2025',prox:'',accion:''},
+  {id:48,nombre:'Sebastian Freiberger',cat:'C',cel:'2281321774',gmail:'',nacimiento:'',oficio:'',obs:'Busca casa en Hurlingham',ult:'04/08/2025',prox:'',accion:''},
+  {id:49,nombre:'Florencio Molina',cat:'C',cel:'1159090943',gmail:'',nacimiento:'',oficio:'Aviador',obs:'Vende casa en Hoggins 1718',ult:'04/08/2025',prox:'',accion:''},
+  {id:50,nombre:'Victoria 160k Hur',cat:'C',cel:'1157663425',gmail:'',nacimiento:'',oficio:'',obs:'',ult:'04/08/2025',prox:'',accion:''},
+  {id:51,nombre:'Juan José Argañaraz',cat:'C',cel:'1164330556',gmail:'',nacimiento:'',oficio:'',obs:'',ult:'04/08/2025',prox:'',accion:''},
+  {id:52,nombre:'Juan José Ocampo',cat:'C',cel:'1133925176',gmail:'',nacimiento:'',oficio:'',obs:'',ult:'04/08/2025',prox:'',accion:''},
+  {id:53,nombre:'Yamila Fandi',cat:'C',cel:'1130082275',gmail:'',nacimiento:'',oficio:'',obs:'',ult:'04/08/2025',prox:'',accion:''},
+  {id:54,nombre:'Vanesa Ovejero',cat:'C',cel:'1136903277',gmail:'',nacimiento:'',oficio:'',obs:'',ult:'04/08/2025',prox:'',accion:''},
+  {id:55,nombre:'Dario Corrales',cat:'C',cel:'1130217596',gmail:'',nacimiento:'',oficio:'',obs:'',ult:'04/08/2025',prox:'',accion:''},
+  {id:56,nombre:'Mirta Montivero',cat:'C',cel:'1165245148',gmail:'',nacimiento:'',oficio:'',obs:'',ult:'04/08/2025',prox:'',accion:''},
+  {id:57,nombre:'Alcides (Referido)',cat:'C',cel:'1122898538',gmail:'',nacimiento:'',oficio:'',obs:'',ult:'04/08/2025',prox:'',accion:''},
+  {id:58,nombre:'Javier Alberto Dipierri',cat:'D',cel:'',gmail:'',nacimiento:'29/11/1983',oficio:'',obs:'Primera captación, fuera de valor',ult:'21/07/2025',prox:'',accion:''},
+  {id:59,nombre:'Gustavo San Isidro',cat:'D',cel:'1165150101',gmail:'',nacimiento:'',oficio:'',obs:'Compraba casa en San Isidro — NO CONTESTA',ult:'10/07/2025',prox:'',accion:''},
+  {id:60,nombre:'Myriam Isabel Munilla',cat:'B',cel:'541161400670',gmail:'sofi_2004@live.com',nacimiento:'',oficio:'',obs:'Tía',ult:'',prox:'',accion:''},
+  {id:61,nombre:'Andres Duplex Tesei',cat:'B',cel:'1149473311',gmail:'',nacimiento:'',oficio:'',obs:'Vendía Duplex en Vasco Nuñez de Balboa',ult:'10/07/2025',prox:'',accion:''},
+];
+
+const DEFAULT_CAP = [
+  {id:1,cliente:'Perla',cel:'1125835548',propiedad:'Gral Pedro Diaz 570, Hurlingham',valor:70000,status:'ESCRIBANIA',fechaAcm:'08/01/2026',recontactar:'30/01/2026'},
+  {id:2,cliente:'Carolina y Mariela',cel:'1158517533',propiedad:'Los Pinos 3291, Hurlingham',valor:50000,status:'RESERVADA',fechaAcm:'02/04/2026',recontactar:'13/04/2026'},
+  {id:3,cliente:'Marco',cel:'1131549549',propiedad:'Complejos de Tesei',valor:40000,status:'PUBLICADA',fechaAcm:'18/02/2026',recontactar:'03/03/2026'},
+  {id:4,cliente:'Carmen Masotto',cel:'1134112802',propiedad:'Necochea 378, Hurlingham',valor:70000,status:'PUBLICADA',fechaAcm:'10/12/2025',recontactar:'23/12/2025'},
+  {id:5,cliente:'Martin',cel:'1151658243',propiedad:'Julian de Charras 3332',valor:130000,status:'PUBLICADA',fechaAcm:'16/07/2025',recontactar:'29/12/2025'},
+  {id:6,cliente:'Nestor',cel:'1157375398',propiedad:'Av Pueyrredon 924, CABA',valor:120000,status:'PUBLICADA',fechaAcm:'19/12/2025',recontactar:'06/01/2026'},
+  {id:7,cliente:'Gaston',cel:'1160461304',propiedad:'Luis Maria Campos 4608, Caseros',valor:62000,status:'PUBLICADA',fechaAcm:'29/12/2025',recontactar:'09/01/2026'},
+  {id:8,cliente:'Luciana Ezcurra',cel:'1150639820',propiedad:'Lote Barrio Estribo Los Pinos 131',valor:28000,status:'PUBLICADA',fechaAcm:'09/02/2026',recontactar:'10/02/2026'},
+  {id:9,cliente:'Mabel Quiroga',cel:'1155297171',propiedad:'General Simon Bolivar 2367 Nº10',valor:60000,status:'PUBLICADA',fechaAcm:'06/02/2026',recontactar:'14/02/2026'},
+  {id:10,cliente:'Martin',cel:'1160972767',propiedad:'Villegas 3079, Morris',valor:120000,status:'PUBLICADA',fechaAcm:'14/02/2026',recontactar:'23/02/2026'},
+  {id:11,cliente:'Gustavo Lozano',cel:'1122461900',propiedad:'Gral Juan Martinez 2228, Ituzaingo',valor:190000,status:'PUBLICADA',fechaAcm:'23/02/2026',recontactar:'23/02/2026'},
+  {id:12,cliente:'Daniela Otero',cel:'1151167065',propiedad:'Ñandú 4810, Hurlingham',valor:50000,status:'PUBLICADA',fechaAcm:'21/02/2026',recontactar:'03/03/2026'},
+  {id:13,cliente:'Rolando Lucero',cel:'1149146065',propiedad:'Finochietto 1860, Hurlingham',valor:200000,status:'PUBLICADA',fechaAcm:'24/02/2026',recontactar:'03/03/2026'},
+  {id:14,cliente:'Maria de los Angeles',cel:'1158530965',propiedad:'Husares 1309',valor:80000,status:'PUBLICADA',fechaAcm:'06/03/2026',recontactar:'31/03/2026'},
+  {id:15,cliente:'Karina Iglesias',cel:'1137850603',propiedad:'Lote Barrio Estribo Los Pinos 105',valor:30000,status:'PUBLICADA',fechaAcm:'01/04/2026',recontactar:'06/04/2026'},
+  {id:16,cliente:'Silvina',cel:'1140709097',propiedad:'Bocayuba 215, Villa Club',valor:100000,status:'PUBLICADA',fechaAcm:'31/03/2026',recontactar:'13/04/2026'},
+  {id:17,cliente:'Carolina y Mariela',cel:'1158517533',propiedad:'Don Cristobal 3469, Hurlingham',valor:60000,status:'PUBLICADA',fechaAcm:'06/04/2026',recontactar:'13/04/2026'},
+  {id:18,cliente:'Adrian y Oflia',cel:'1167626844',propiedad:'Chuquisaca 3311, Villa Tesei',valor:100000,status:'PUBLICADA',fechaAcm:'14/02/2026',recontactar:'21/04/2026'},
+  {id:19,cliente:'Delia Copello',cel:'3436437019',propiedad:'Andrés Arguibel 2064',valor:60000,status:'REVISAR',fechaAcm:'09/04/2026',recontactar:'13/04/2026'},
+  {id:20,cliente:'Marcela Brun',cel:'1156453189',propiedad:'Bell Ville 4087/91 U1',valor:55000,status:'FOTOGRAFIA',fechaAcm:'20/04/2026',recontactar:''},
+  {id:21,cliente:'Paula',cel:'1137913926',propiedad:'Barrio Cartero',valor:55000,status:'DOCUMENTACION',fechaAcm:'02/04/2026',recontactar:''},
+  {id:22,cliente:'Sebastian Paurelli',cel:'1144350865',propiedad:'Av Vergara 2436, Hurlingham',valor:45000,status:'PRESENTADO',fechaAcm:'',recontactar:'Ofrecer sin publicar'},
+  {id:23,cliente:'Gaston',cel:'1159448356',propiedad:'Ricard Gutierrez 10546, Trujui',valor:80000,status:'NO CAPTADO',fechaAcm:'13/10/2025',recontactar:'Quedó en standby'},
+  {id:24,cliente:'Ana Laura',cel:'1166850836',propiedad:'Chuquisaca 3864',valor:80000,status:'NO CAPTADO',fechaAcm:'04/04/2025',recontactar:'Casa alquilada'},
+  {id:25,cliente:'Marcela Correa',cel:'1165356963',propiedad:'Sullivan 2902, El Palomar',valor:120000,status:'NO CAPTADO',fechaAcm:'06/11/2025',recontactar:'No vende de momento'},
+  {id:26,cliente:'Daiana / Graciela',cel:'1155953699',propiedad:'Margarita Corvalan 1052, Palomar',valor:90000,status:'NO CAPTADO',fechaAcm:'10/11/2025',recontactar:'1 hermano no quiere vender'},
+  {id:27,cliente:'Santo Altamirano',cel:'1121615279',propiedad:'Villegas 2940, Morris',valor:90000,status:'NO CAPTADO',fechaAcm:'17/11/2025',recontactar:'02/03/2026 — debe pensar'},
+  {id:28,cliente:'Rosana',cel:'1130035786',propiedad:'Hudson 821, Hurlingham',valor:180000,status:'NO CAPTADO',fechaAcm:'27/11/2025',recontactar:'Trabajando con C21 hasta 30/3/26'},
+  {id:29,cliente:'Analia Ortiz',cel:'1168912537',propiedad:'Peru 1745, Barracas',valor:50000,status:'NO CAPTADO',fechaAcm:'06/12/2025',recontactar:'02/03/2026'},
+  {id:30,cliente:'Hector Rotolo',cel:'1157133635',propiedad:'Av. Vergara 4228, Hurlingham',valor:160000,status:'PRESENTADO',fechaAcm:'04/01/2026',recontactar:'02/03/2026'},
+  {id:31,cliente:'Juan Carlos',cel:'1158180325',propiedad:'Manuel Padilla 3063, Hurlingham',valor:75000,status:'PRESENTADO',fechaAcm:'07/01/2026',recontactar:'VA A ESPERAR'},
+  {id:32,cliente:'Monica Bircher',cel:'1169377140',propiedad:'Rivas 1592, Bella Vista',valor:100000,status:'PRESENTADO',fechaAcm:'06/01/2026',recontactar:'No respondió 1er toque'},
+  {id:33,cliente:'Marcelo',cel:'1144107170',propiedad:'Hernan Cortez 2141, Hurlingham',valor:130000,status:'PRESENTADO',fechaAcm:'10/01/2026',recontactar:'Le parece poco'},
+  {id:34,cliente:'Miguel Angel',cel:'1150091008',propiedad:'Arguibel 2755, Hurlingham',valor:80000,status:'PRESENTADO',fechaAcm:'04/10/2025',recontactar:'Volvió a llamar para publicar en 80k'},
+  {id:35,cliente:'Lia',cel:'1164155321',propiedad:'Jose Maison 548, Castelar Sur',valor:120000,status:'PRESENTADO',fechaAcm:'26/02/2026',recontactar:'No aceptó pre-listing'},
+  {id:36,cliente:'Susana',cel:'1151419116',propiedad:'Felix Frias 3666',valor:60000,status:'PRESENTADO',fechaAcm:'26/02/2026',recontactar:''},
+  {id:37,cliente:'Adriana',cel:'1166392382',propiedad:'Poeta Risso 3435',valor:70000,status:'PRESENTADO',fechaAcm:'03/03/2026',recontactar:'No aceptó tasación'},
+  {id:38,cliente:'Gonzalo Daversa',cel:'1130587461',propiedad:'Pedro Martinez 151 2C',valor:57000,status:'PRESENTADO',fechaAcm:'',recontactar:'Va a esperar, alquilado de momento'},
+  {id:39,cliente:'Ivan',cel:'1123256667',propiedad:'Gurruchaga 2210, Hurlingham',valor:60000,status:'PRESENTADO',fechaAcm:'26/03/2026',recontactar:''},
+  {id:40,cliente:'Daiana Dellapaulera',cel:'1134346479',propiedad:'Puan 4744, Caseros',valor:45000,status:'PRESENTADO',fechaAcm:'02/04/2026',recontactar:'Casa de la suegra'},
+  {id:41,cliente:'Eugenia',cel:'1164879584',propiedad:'Pedro Diaz 2576, Hurlingham',valor:55000,status:'PRESENTAR ACM',fechaAcm:'14/04/2026',recontactar:''},
+  {id:42,cliente:'Gabriel',cel:'1149731966',propiedad:'Pasaje Juan P Calou 5421, Villa Lugano',valor:0,status:'HACER ACM',fechaAcm:'25/04/2026',recontactar:''},
+  {id:43,cliente:'Sofia Ortmann',cel:'1127154376',propiedad:'Casa en Tesei',valor:0,status:'HACER ACM',fechaAcm:'',recontactar:'Vende para comprar algo más grande'},
+  {id:44,cliente:'Victoria',cel:'1157663425',propiedad:'Carlos Reyles 4185',valor:180000,status:'PRESENTAR ACM',fechaAcm:'26/02/2026',recontactar:''},
+  {id:45,cliente:'Hugo Salvador',cel:'1135814522',propiedad:'Cornelio Saavedra 1071, Muñiz',valor:0,status:'HACER ACM',fechaAcm:'04/05/2026',recontactar:'Cotizar propiedad'},
+  {id:46,cliente:'Claudia',cel:'1125356846',propiedad:'Atuel entre Gernica y Castillo',valor:0,status:'HACER ACM',fechaAcm:'27/04/2026',recontactar:'Reunión 27/04/26'},
+  {id:47,cliente:'Miguel',cel:'1140232244',propiedad:'Bernardo de Irigoyen 1299, Belén de Escobar',valor:0,status:'HACER ACM',fechaAcm:'28/04/2026',recontactar:''},
+];
+
+const DEFAULT_PRE = [
+  {id:1,cliente:'Ezequiel Deposito',cel:'54922845221266',propiedad:'Morris',status:'Aguardando sucesión',origen:'OFI',prox:'02/03/2026',notas:''},
+  {id:2,cliente:'Delfina',cel:'1151338061',propiedad:'Depto capital',status:'Hay que tasarla',origen:'FB PROS',prox:'02/03/2026',notas:'GiftCard ZP'},
+  {id:3,cliente:'Gise dueño vende',cel:'1167369879',propiedad:'No sabe',status:'Hay que tasarla',origen:'ML REF',prox:'02/03/2026',notas:'GiftCard ZP'},
+  {id:4,cliente:'Miguel Anghilieri',cel:'1158311095',propiedad:'Tesei',status:'Se está mudando y luego vende',origen:'BASE',prox:'06/03/2026',notas:'Enviar toque'},
+  {id:5,cliente:'Sandra',cel:'1152623699',propiedad:'Soler 1160, Grand Bourg',status:'Hay que tasarla',origen:'REF',prox:'',notas:''},
+  {id:6,cliente:'Susana',cel:'1128859460',propiedad:'Diego de Villaroel 252, Villa Tesei',status:'Hay que tasarla',origen:'CLIENTE',prox:'',notas:''},
+  {id:7,cliente:'Hector',cel:'1138087186',propiedad:'Barrio Los Altos de Podesta',status:'Hay que tasarla',origen:'PORTAL',prox:'16/03/2026',notas:'Enviar gift'},
+  {id:8,cliente:'Juan Curotto',cel:'1135995084',propiedad:'Vende 2 casas (con RE/MAX)',status:'Permuta',origen:'PERMUTA',prox:'06/04/2026',notas:'Enviar gift'},
+  {id:9,cliente:'Susana',cel:'1125326365',propiedad:'Ramos Mejia, calle Constitución',status:'Hay que tasarla',origen:'REF',prox:'',notas:''},
+  {id:10,cliente:'Dante',cel:'1133336903',propiedad:'Lote Agustinas Pedro Diaz 1717',status:'Hay que tasarla',origen:'',prox:'20/04/2026',notas:'Quiere comprar casa'},
+  {id:11,cliente:'Diego Vilalba',cel:'1136413322',propiedad:'Morón',status:'Hay que tasarla',origen:'',prox:'22/04/2026',notas:''},
+  {id:12,cliente:'Tomas Navarro',cel:'1130831752',propiedad:'Gral Rodriguez centro',status:'',origen:'FACE',prox:'',notas:''},
+];
+
+const DEFAULT_COMP = [
+  {id:1,nombre:'Lujan fc',cel:'1161062650',zona:'Hurlingham',tipo:'Casa',ambientes:3,credito:'No',monto:'$50.000D',obs:'Casa número 68 — parecía interesado',ult:'21/04/2026',prox:''},
+  {id:2,nombre:'Hernan',cel:'1159443012',zona:'San Miguel',tipo:'Casa',ambientes:3,credito:'No',monto:'$68.000D',obs:'Visita pendiente el sábado',ult:'20/04/2026',prox:''},
+  {id:3,nombre:'Lazaro',cel:'1140820081',zona:'Hurlingham',tipo:'Casa (permuta con auto)',ambientes:3,credito:'No',monto:'$50.000D',obs:'Interesado, quiere permutar con auto',ult:'22/04/2026',prox:''},
+];
+
+const DEFAULT_GASTOS_MARZO = [
+  {fecha:'17/03',cat:'Nafta',monto:25000},{fecha:'17/03',cat:'Café',monto:5000},{fecha:'18/03',cat:'Café',monto:2500},
+  {fecha:'18/03',cat:'Oficina',monto:300,usd:true},{fecha:'18/03',cat:'Otros',monto:383000},{fecha:'18/03',cat:'Café',monto:2500},
+  {fecha:'18/03',cat:'Café',monto:2000},{fecha:'18/03',cat:'Comida',monto:60000},{fecha:'18/03',cat:'Movistar',monto:30000},
+  {fecha:'19/03',cat:'Nafta',monto:20000},{fecha:'19/03',cat:'Café',monto:2900},{fecha:'19/03',cat:'Comida',monto:800},
+  {fecha:'19/03',cat:'Comida',monto:5500},{fecha:'19/03',cat:'Comida',monto:1800},{fecha:'19/03',cat:'Café',monto:3000},
+  {fecha:'20/03',cat:'Comida',monto:11000},{fecha:'20/03',cat:'Salida',monto:61000},{fecha:'21/03',cat:'Nafta',monto:20000},
+  {fecha:'22/03',cat:'Auto',monto:13500},{fecha:'23/03',cat:'Personal',monto:70000},{fecha:'23/03',cat:'Café',monto:10000},
+  {fecha:'23/03',cat:'Café',monto:10000},{fecha:'24/03',cat:'Café',monto:3500},{fecha:'24/03',cat:'Nafta',monto:20000},
+  {fecha:'25/03',cat:'Café',monto:3100},{fecha:'25/03',cat:'Personal',monto:2000},{fecha:'25/03',cat:'Negocio',monto:800},
+  {fecha:'25/03',cat:'Personal',monto:20000},{fecha:'25/03',cat:'Personal',monto:27000},{fecha:'26/03',cat:'Nafta',monto:20000},
+  {fecha:'26/03',cat:'Personal',monto:20000},{fecha:'28/03',cat:'Personal',monto:25000},{fecha:'28/03',cat:'Comida',monto:30000},
+  {fecha:'29/03',cat:'Nafta',monto:20000},{fecha:'30/03',cat:'Café',monto:3100},{fecha:'31/03',cat:'Nafta',monto:20000},
+  {fecha:'31/03',cat:'Comida',monto:800},
+];
+
+const DEFAULT_GASTOS_ABRIL = [
+  {fecha:'01/04',cat:'Café',monto:4200},{fecha:'01/04',cat:'Café',monto:1200},{fecha:'01/04',cat:'Nafta',monto:20000},
+  {fecha:'01/04',cat:'Personal',monto:4000},{fecha:'02/04',cat:'Café',monto:3500},{fecha:'02/04',cat:'Negocio',monto:80000},
+  {fecha:'03/04',cat:'Peaje',monto:4800},{fecha:'03/04',cat:'Café',monto:7000},{fecha:'03/04',cat:'Peaje',monto:2000},
+  {fecha:'03/04',cat:'Peaje',monto:2000},{fecha:'04/04',cat:'Comida',monto:35000},{fecha:'04/04',cat:'Nafta',monto:20000},
+  {fecha:'06/04',cat:'Seguro auto',monto:150492},{fecha:'06/04',cat:'Movistar',monto:28000},{fecha:'06/04',cat:'Monotributo',monto:52231},
+  {fecha:'06/04',cat:'Personal',monto:20000},{fecha:'07/04',cat:'Sueldo asistente',monto:120000},{fecha:'08/04',cat:'Café',monto:3500},
+  {fecha:'08/04',cat:'Nafta',monto:20000},{fecha:'09/04',cat:'Peaje',monto:2500},{fecha:'09/04',cat:'Comida',monto:14000},
+  {fecha:'10/04',cat:'Nafta',monto:30000},{fecha:'10/04',cat:'Café',monto:5900},{fecha:'10/04',cat:'Comida',monto:11000},
+  {fecha:'13/04',cat:'Café',monto:3500},{fecha:'13/04',cat:'Peaje',monto:2500},{fecha:'13/04',cat:'Comida',monto:9000},
+  {fecha:'14/04',cat:'Fotógrafo',monto:100000},{fecha:'14/04',cat:'Nafta',monto:20000},{fecha:'14/04',cat:'Comida',monto:4500},
+  {fecha:'15/04',cat:'Café',monto:3500},{fecha:'15/04',cat:'Café',monto:2500},{fecha:'16/04',cat:'Café',monto:2100},
+  {fecha:'16/04',cat:'Comida',monto:7000},{fecha:'17/04',cat:'Café',monto:3500},{fecha:'17/04',cat:'Nafta',monto:30000},
+  {fecha:'18/04',cat:'Personal',monto:19000},{fecha:'18/04',cat:'Café',monto:3000},{fecha:'18/04',cat:'Peaje',monto:1000},
+  {fecha:'22/04',cat:'Café',monto:4300},{fecha:'22/04',cat:'Estacionamiento',monto:14000},
+];
+
+const DEFAULT_REGALOS = [
+  {id:1,nombre:'Pablo Pittaluga',tipo:'COMPRADOR',accion:'REGALO',momento:'Pascua',hora:'Vie 3 — 10:00hs'},
+  {id:2,nombre:'Sebastian Paurelli',tipo:'VENDEDOR',accion:'REGALO',momento:'Pascua',hora:''},
+  {id:3,nombre:'Rosa Heis',tipo:'VENDEDOR',accion:'REGALO',momento:'Pascua',hora:'Vie 3 — 11:30hs'},
+  {id:4,nombre:'Luciana Ezcurra',tipo:'ACTIVO',accion:'',momento:'',hora:''},
+  {id:5,nombre:'Rolando Lucero',tipo:'ACTIVO',accion:'REGALO',momento:'Pascua',hora:'Vie 3 — 10:30hs'},
+  {id:6,nombre:'Victoria Lerena',tipo:'COMPRADOR',accion:'REGALO',momento:'Pascua',hora:'Vie 3 — 12:00hs'},
+  {id:7,nombre:'Hector Culcuy',tipo:'COMPRADOR',accion:'REGALO',momento:'Pascua',hora:'Vie 3 — 09:00hs'},
+  {id:8,nombre:'Marcela Stubjel',tipo:'BASE',accion:'',momento:'',hora:''},
+  {id:9,nombre:'Marco Buccellato',tipo:'COMPRADOR',accion:'REGALO',momento:'Pascua',hora:'Vie 3 — 11:00hs'},
+  {id:10,nombre:'Juan y Gaby Ratto',tipo:'VENDEDOR',accion:'REGALO',momento:'Pascua',hora:'Vie 3 — 08:30hs'},
+  {id:11,nombre:'Mirta Montivero',tipo:'VENDEDOR',accion:'REGALO — NO ESTÁ',momento:'Pascua',hora:''},
+  {id:12,nombre:'Martin Capiello',tipo:'COMPRADOR',accion:'REGALO',momento:'Pascua',hora:''},
+  {id:13,nombre:'Maximiliano Sinamom',tipo:'REFERIDOR',accion:'',momento:'',hora:''},
+];
+
+const DEFAULT_SEMANAS = [
+  {sem:'E1',toques:5,cara:1,ref:0,preBuy:0,preLis:1,vol:160000,cap:0,res:2,cierres:0,bruto:0},
+  {sem:'2',toques:15,cara:2,ref:3,preBuy:0,preLis:0,vol:245000,cap:2,res:1,cierres:0,bruto:0},
+  {sem:'3',toques:5,cara:1,ref:2,preBuy:0,preLis:0,vol:510000,cap:0,res:0,cierres:0,bruto:0},
+  {sem:'4',toques:4,cara:0,ref:1,preBuy:0,preLis:0,vol:75000,cap:0,res:1,cierres:0,bruto:0},
+  {sem:'F5',toques:3,cara:1,ref:0,preBuy:0,preLis:1,vol:0,cap:0,res:0,cierres:0,bruto:0},
+  {sem:'6',toques:5,cara:9,ref:1,preBuy:1,preLis:0,vol:60000,cap:0,res:1,cierres:0,bruto:0},
+  {sem:'7',toques:6,cara:3,ref:1,preBuy:3,preLis:0,vol:248000,cap:2,res:0.5,cierres:0.5,bruto:480},
+  {sem:'8',toques:6,cara:1,ref:2,preBuy:2,preLis:0,vol:90000,cap:0,res:1,cierres:0,bruto:0},
+  {sem:'M9',toques:6,cara:1,ref:1,preBuy:6,preLis:0,vol:8100000,cap:2,res:0,cierres:0,bruto:0},
+  {sem:'10',toques:2,cara:0,ref:0,preBuy:1,preLis:0,vol:70000,cap:3,res:0,cierres:0,bruto:0},
+  {sem:'11',toques:2,cara:1,ref:1,preBuy:0,preLis:0,vol:80000,cap:0,res:0.5,cierres:2,bruto:4690},
+  {sem:'12',toques:60,cara:2,ref:1,preBuy:3,preLis:0,vol:0,cap:0,res:0,cierres:1.5,bruto:4390},
+  {sem:'13',toques:34,cara:7,ref:3,preBuy:2,preLis:1,vol:60000,cap:0,res:0,cierres:0,bruto:0},
+  {sem:'A14',toques:7,cara:1,ref:1,preBuy:5,preLis:0,vol:274000,cap:1,res:1,cierres:0,bruto:0},
+  {sem:'15',toques:6,cara:0,ref:1,preBuy:2,preLis:0,vol:110000,cap:1,res:0,cierres:0,bruto:0},
+  {sem:'16',toques:1,cara:0,ref:2,preBuy:0,preLis:0,vol:60000,cap:4,res:0,cierres:0,bruto:0},
+  {sem:'17',toques:1,cara:1,ref:0,preBuy:0,preLis:0,vol:55000,cap:1,res:2,cierres:2,bruto:13450},
+];
+
+// ── INIT ─────────────────────────────────────────────────────────────
+let relaciones = mergeData('relaciones', DEFAULT_REL);
+let captaciones = mergeData('captaciones', DEFAULT_CAP);
+let prelisting = mergeData('prelisting', DEFAULT_PRE);
+let compradores = mergeData('compradores', DEFAULT_COMP);
+let gastosMarzo = mergeData('gastos_marzo', DEFAULT_GASTOS_MARZO);
+let gastosAbril = mergeData('gastos_abril', DEFAULT_GASTOS_ABRIL);
+let regalos = mergeData('regalos', DEFAULT_REGALOS);
+let semanas = mergeData('semanas', DEFAULT_SEMANAS);
+
+// ── NAV ──────────────────────────────────────────────────────────────
+function showPanel(id, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  btn.classList.add('active');
+  renderPanel(id);
+}
+function renderPanel(id) {
+  if(id==='relaciones') renderRelaciones();
+  else if(id==='captaciones') renderCaptaciones();
+  else if(id==='prelisting') renderPrelisting();
+  else if(id==='compradores') renderCompradores();
+  else if(id==='gastos') renderGastos();
+  else if(id==='regalos') renderRegalos();
+  else if(id==='semanas') renderSemanas();
+  else renderDashboard();
+}
+
+// ── DATE ─────────────────────────────────────────────────────────────
+function initDate() {
+  const d = new Date();
+  document.getElementById('headerDate').textContent = d.toLocaleDateString('es-AR', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────
+function renderDashboard() {
+  const statusCount = {};
+  captaciones.forEach(c => { statusCount[c.status] = (statusCount[c.status]||0)+1; });
+  const estadosEl = document.getElementById('dash-estados');
+  estadosEl.innerHTML = Object.entries(statusCount).map(([st,n]) =>
+    `<span class="badge ${statusClass(st)}" style="font-size:12px;padding:4px 10px">${st} (${n})</span>`
+  ).join('');
+  document.getElementById('m-cap').textContent = captaciones.filter(c=>!['NO CAPTADO'].includes(c.status)).length;
+  document.getElementById('m-pre').textContent = prelisting.length;
+
+  const semEl = document.getElementById('dash-semanas');
+  const maxT = Math.max(...semanas.map(s=>s.toques));
+  semEl.innerHTML = semanas.slice(-8).map(s=>`
+    <div class="sem-row">
+      <div class="sem-label">${s.sem}</div>
+      <div class="sem-bar-w"><div class="sem-bar" style="width:${Math.round(s.toques/maxT*100)}%"></div></div>
+      <div class="sem-val">${s.toques} toques · ${s.cap} cap</div>
+    </div>`).join('');
+}
+
+// ── RELACIONES ────────────────────────────────────────────────────────
+function catClass(cat) {
+  return {'+A':'cat-aplus','A+':'cat-aplus','A':'cat-a','B':'cat-b','C':'cat-c','D':'cat-d'}[cat]||'cat-c';
+}
+function renderRelaciones() {
+  const q = (document.getElementById('rel-search').value||'').toLowerCase();
+  const cat = document.getElementById('rel-cat').value;
+  const filtered = relaciones.filter(r =>
+    (!q || r.nombre.toLowerCase().includes(q) || r.cel.includes(q)) &&
+    (!cat || r.cat===cat)
+  );
+  document.getElementById('rel-body').innerHTML = filtered.map(r=>`
+    <tr>
+      <td style="font-weight:600">${r.nombre}</td>
+      <td><span class="badge ${catClass(r.cat)}">${r.cat}</span></td>
+      <td><a href="https://wa.me/54${r.cel}" target="_blank" style="color:var(--green);text-decoration:none">📱 ${r.cel}</a></td>
+      <td>${r.ult||'—'}</td>
+      <td>${r.prox||'—'}</td>
+      <td title="${r.obs}">${r.obs||'—'}</td>
+    </tr>`).join('') || '<tr><td colspan="6" class="empty">Sin resultados</td></tr>';
+  document.getElementById('rel-count').textContent = `${filtered.length} de ${relaciones.length} contactos`;
+}
+
+// ── CAPTACIONES ────────────────────────────────────────────────────────
+function statusClass(st) {
+  const m = {'PUBLICADA':'st-pub','RESERVADA':'st-res','ESCRIBANIA':'st-esc','PRESENTADO':'st-pre','NO CAPTADO':'st-noc','FOTOGRAFIA':'st-foto','DOCUMENTACION':'st-doc','REVISAR':'st-rev','HACER ACM':'st-acm','PRESENTAR ACM':'st-acm'};
+  return m[st]||'st-doc';
+}
+function renderCaptaciones() {
+  const q = (document.getElementById('cap-search').value||'').toLowerCase();
+  const st = document.getElementById('cap-status').value;
+  const view = document.getElementById('cap-view').value;
+  const filtered = captaciones.filter(c =>
+    (!q || c.cliente.toLowerCase().includes(q) || c.propiedad.toLowerCase().includes(q)) &&
+    (!st || c.status===st)
+  );
+  const el = document.getElementById('cap-content');
+  if(view==='kanban') {
+    const cols = ['HACER ACM','PRESENTAR ACM','FOTOGRAFIA','DOCUMENTACION','PRESENTADO','PUBLICADA','RESERVADA','ESCRIBANIA','NO CAPTADO','REVISAR'];
+    const groups = {};
+    cols.forEach(c=>groups[c]=[]);
+    filtered.forEach(c=>{ if(groups[c.status]) groups[c.status].push(c); });
+    el.innerHTML = `<div class="kanban">${cols.filter(c=>groups[c].length>0).map(col=>`
+      <div class="k-col">
+        <div class="k-header"><span>${col}</span><span class="k-count">${groups[col].length}</span></div>
+        ${groups[col].map(c=>`<div class="k-card">
+          <div class="k-card-name">${c.cliente}</div>
+          <div class="k-card-addr">${c.propiedad}</div>
+          ${c.valor?`<div class="k-card-val">$${c.valor.toLocaleString('es-AR')}</div>`:''}
+          ${c.recontactar?`<div class="k-card-date">${c.recontactar}</div>`:''}
+        </div>`).join('')}
+      </div>`).join('')}</div>`;
+  } else {
+    el.innerHTML = `<div class="table-wrap"><table>
+      <thead><tr><th>Cliente</th><th>Propiedad</th><th>Valor USD</th><th>Estado</th><th>ACM</th><th>Recontactar</th></tr></thead>
+      <tbody>${filtered.map(c=>`<tr>
+        <td style="font-weight:600">${c.cliente}</td>
+        <td title="${c.propiedad}">${c.propiedad}</td>
+        <td>${c.valor?'$'+c.valor.toLocaleString('es-AR'):'—'}</td>
+        <td><span class="badge ${statusClass(c.status)}">${c.status}</span></td>
+        <td>${c.fechaAcm||'—'}</td>
+        <td>${c.recontactar||'—'}</td>
+      </tr>`).join('')||'<tr><td colspan="6" class="empty">Sin resultados</td></tr>'}
+      </tbody></table></div>`;
+  }
+}
+
+// ── PRE-LISTING ────────────────────────────────────────────────────────
+function renderPrelisting() {
+  const q = (document.getElementById('pre-search').value||'').toLowerCase();
+  const filtered = prelisting.filter(p => !q || p.cliente.toLowerCase().includes(q) || p.propiedad.toLowerCase().includes(q));
+  document.getElementById('pre-body').innerHTML = filtered.map(p=>`<tr>
+    <td style="font-weight:600">${p.cliente}</td>
+    <td>${p.cel}</td>
+    <td title="${p.propiedad}">${p.propiedad}</td>
+    <td>${p.status||'—'}</td>
+    <td>${p.origen||'—'}</td>
+    <td>${p.prox||'—'}</td>
+    <td title="${p.notas}">${p.notas||'—'}</td>
+  </tr>`).join('') || '<tr><td colspan="7" class="empty">Sin resultados</td></tr>';
+}
+
+// ── COMPRADORES ────────────────────────────────────────────────────────
+function renderCompradores() {
+  document.getElementById('comp-body').innerHTML = compradores.map(c=>`<tr>
+    <td style="font-weight:600">${c.nombre}</td>
+    <td><a href="https://wa.me/54${c.cel}" target="_blank" style="color:var(--green);text-decoration:none">📱 ${c.cel}</a></td>
+    <td>${c.zona} — ${c.tipo}</td>
+    <td>${c.credito}</td>
+    <td style="font-weight:600">${c.monto}</td>
+    <td>${c.ult||'—'}</td>
+    <td title="${c.obs}">${c.obs}</td>
+  </tr>`).join('') || '<tr><td colspan="7" class="empty">Sin compradores</td></tr>';
+}
+
+// ── GASTOS ────────────────────────────────────────────────────────────
+function renderGastos() {
+  const mes = document.getElementById('gasto-mes').value;
+  const lista = mes==='marzo' ? gastosMarzo : gastosAbril;
+  const cats = {};
+  lista.forEach(g => {
+    if(!g.usd) cats[g.cat] = (cats[g.cat]||0) + g.monto;
+  });
+  const total = Object.values(cats).reduce((a,b)=>a+b,0);
+  const catColors = {'Café':'#c0392b','Nafta':'#2980b9','Comida':'#27ae60','Personal':'#8e44ad','Negocio':'#f39c12','Auto':'#2c3e50','Peaje':'#16a085','Movistar':'#e67e22','Monotributo':'#7f8c8d','Sueldo asistente':'#1abc9c','Fotógrafo':'#d35400','Seguro auto':'#34495e','Salida':'#c0392b','Otros':'#95a5a6','Estacionamiento':'#7f8c8d'};
+  document.getElementById('gasto-resumen').innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Total pesos</div>
+      <div style="font-size:24px;font-weight:700">$${total.toLocaleString('es-AR')}</div>
+      ${mes==='marzo'?'<div style="font-size:11px;color:var(--hint);margin-top:2px">+ $300 USD (oficina)</div>':'<div style="font-size:11px;color:var(--hint);margin-top:2px">+ $400 USD (préstamos)</div>'}
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Por categoría</div>
+      ${Object.entries(cats).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([cat,amt])=>`
+        <div class="gasto-cat-row">
+          <span>${cat}</span>
+          <span style="font-weight:600">$${amt.toLocaleString('es-AR')}</span>
+        </div>
+        <div class="gasto-bar"><div class="gasto-fill" style="width:${Math.round(amt/total*100)}%;background:${catColors[cat]||'var(--accent)'}"></div></div>
+      `).join('')}
+    </div>`;
+  let acum = 0;
+  document.getElementById('gasto-body').innerHTML = lista.map(g=>{
+    if(!g.usd) acum += g.monto;
+    return `<tr>
+      <td class="gasto-fecha">${g.fecha}</td>
+      <td>${g.cat}</td>
+      <td style="font-weight:600">$${g.monto.toLocaleString('es-AR')}${g.usd?' USD':''}</td>
+      <td style="color:var(--muted)">$${acum.toLocaleString('es-AR')}</td>
+    </tr>`;
+  }).join('');
+  if(mes==='abril') {
+    document.getElementById('gasto-prestamos').innerHTML = `
+      <div class="section-title">Préstamos activos</div>
+      <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>A quién</th><th>Monto</th><th>Nota</th></tr></thead>
+      <tbody>
+        <tr><td>26/03</td><td>Alan Munilla (autopréstamo)</td><td style="font-weight:600">$100 USD</td><td></td></tr>
+        <tr><td>04/04</td><td>Marco Remax</td><td style="font-weight:600">$300 USD</td><td></td></tr>
+      </tbody></table></div>`;
+  } else {
+    document.getElementById('gasto-prestamos').innerHTML = '';
+  }
+}
+
+// ── REGALOS ────────────────────────────────────────────────────────────
+function renderRegalos() {
+  const tipoIcon = {'COMPRADOR':'🤝','VENDEDOR':'🏠','ACTIVO':'⭐','REFERIDOR':'🔗','BASE':'📋'};
+  document.getElementById('regalos-lista').innerHTML = regalos.map(r=>`
+    <div class="regalo-card">
+      <div class="regalo-icon">${tipoIcon[r.tipo]||'👤'}</div>
+      <div class="regalo-info">
+        <div class="regalo-name">${r.nombre}</div>
+        <div class="regalo-tipo">${r.tipo}</div>
+      </div>
+      <div class="regalo-right">
+        ${r.accion?`<div class="regalo-accion">${r.accion}</div>`:''}
+        ${r.momento?`<div style="font-size:11px;color:var(--muted)">${r.momento}</div>`:''}
+        ${r.hora?`<div class="regalo-hora">${r.hora}</div>`:''}
+      </div>
+    </div>`).join('');
+}
+
+// ── SEMANAS ────────────────────────────────────────────────────────────
+function renderSemanas() {
+  document.getElementById('sem-body').innerHTML = semanas.map(s=>`<tr>
+    <td style="font-weight:600">${s.sem}</td>
+    <td>${s.toques}</td><td>${s.cara}</td><td>${s.ref}</td>
+    <td>${s.preBuy}</td><td>${s.preLis}</td>
+    <td>${s.vol?'$'+s.vol.toLocaleString('es-AR'):'—'}</td>
+    <td>${s.cap}</td><td>${s.res}</td><td>${s.cierres}</td>
+    <td>${s.bruto?'$'+s.bruto.toLocaleString('es-AR'):'—'}</td>
+  </tr>`).join('');
+  const maxT = Math.max(...semanas.map(s=>s.toques));
+  document.getElementById('sem-chart').innerHTML = semanas.map(s=>`
+    <div class="sem-row">
+      <div class="sem-label">${s.sem}</div>
+      <div class="sem-bar-w"><div class="sem-bar" style="width:${Math.round(s.toques/maxT*100)}%"></div></div>
+      <div class="sem-val">${s.toques} toques</div>
+    </div>`).join('');
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────────
+let modalType = '';
+function openModal(type) {
+  modalType = type;
+  const forms = {
+    rel: {title:'Nuevo contacto', fields:[
+      {label:'Nombre completo',name:'nombre',type:'text',req:true},
+      {label:'Categoría',name:'cat',type:'select',opts:['A+','A','B','C','D']},
+      {label:'Celular',name:'cel',type:'text'},{label:'Gmail',name:'gmail',type:'text'},
+      {label:'Oficio',name:'oficio',type:'text'},{label:'Nacimiento',name:'nacimiento',type:'text',ph:'DD/MM/AAAA'},
+      {label:'Observación',name:'obs',type:'textarea'},
+      {label:'Último contacto',name:'ult',type:'text'},{label:'Próximo contacto',name:'prox',type:'text'},
+    ]},
+    cap: {title:'Nueva captación', fields:[
+      {label:'Cliente',name:'cliente',type:'text',req:true},{label:'Celular',name:'cel',type:'text'},
+      {label:'Propiedad / dirección',name:'propiedad',type:'text'},{label:'Valor USD',name:'valor',type:'number'},
+      {label:'Estado',name:'status',type:'select',opts:['HACER ACM','PRESENTAR ACM','FOTOGRAFIA','DOCUMENTACION','PRESENTADO','PUBLICADA','RESERVADA','ESCRIBANIA','NO CAPTADO','REVISAR']},
+      {label:'Fecha ACM',name:'fechaAcm',type:'text'},{label:'Recontactar / nota',name:'recontactar',type:'text'},
+    ]},
+    pre: {title:'Nuevo pre-listing', fields:[
+      {label:'Cliente',name:'cliente',type:'text',req:true},{label:'Celular',name:'cel',type:'text'},
+      {label:'Propiedad',name:'propiedad',type:'text'},
+      {label:'Estado',name:'status',type:'select',opts:['Hay que tasarla','Aguardando sucesión','Permuta','','Otro']},
+      {label:'Origen',name:'origen',type:'text'},{label:'Próximo contacto',name:'prox',type:'text'},
+      {label:'Notas',name:'notas',type:'textarea'},
+    ]},
+    comp: {title:'Nuevo comprador', fields:[
+      {label:'Nombre',name:'nombre',type:'text',req:true},{label:'Celular',name:'cel',type:'text'},
+      {label:'Zona',name:'zona',type:'text'},{label:'Tipo propiedad',name:'tipo',type:'text'},
+      {label:'Crédito hipotecario',name:'credito',type:'select',opts:['No','Sí']},
+      {label:'Monto',name:'monto',type:'text'},{label:'Observación',name:'obs',type:'textarea'},
+    ]},
+    gasto: {title:'Nuevo gasto', fields:[
+      {label:'Fecha',name:'fecha',type:'text',ph:'DD/MM',req:true},
+      {label:'Categoría',name:'cat',type:'select',opts:['Café','Nafta','Comida','Personal','Negocio','Auto','Peaje','Movistar','Monotributo','Sueldo asistente','Fotógrafo','Seguro auto','Salida','Otros']},
+      {label:'Monto ($)',name:'monto',type:'number',req:true},
+    ]},
+    regalo: {title:'Nuevo regalo/popby', fields:[
+      {label:'Nombre',name:'nombre',type:'text',req:true},
+      {label:'Tipo',name:'tipo',type:'select',opts:['COMPRADOR','VENDEDOR','ACTIVO','REFERIDOR','BASE']},
+      {label:'Acción',name:'accion',type:'text'},{label:'Momento',name:'momento',type:'text'},
+      {label:'Horario',name:'hora',type:'text'},
+    ]},
+  };
+  const f = forms[type];
+  if(!f) return;
+  document.getElementById('modal-title').textContent = f.title;
+  document.getElementById('modal-body').innerHTML = f.fields.map(field=>`
+    <div class="form-row">
+      <label class="form-label">${field.label}${field.req?' *':''}</label>
+      ${field.type==='textarea'?`<textarea class="form-input" name="${field.name}" rows="2"></textarea>`:
+        field.type==='select'?`<select class="form-input" name="${field.name}">${(field.opts||[]).map(o=>`<option>${o}</option>`).join('')}</select>`:
+        `<input class="form-input" type="${field.type}" name="${field.name}" placeholder="${field.ph||''}">`}
+    </div>`).join('');
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal(e) {
+  if(!e || e.target===document.getElementById('modal-overlay'))
+    document.getElementById('modal-overlay').classList.remove('open');
+}
+function saveModal() {
+  const data = {};
+  document.querySelectorAll('#modal-body [name]').forEach(el => { data[el.name] = el.value; });
+  if(modalType==='rel') {
+    const newId = Math.max(0,...relaciones.map(r=>r.id))+1;
+    relaciones.push({...data,id:newId,cat:data.cat||'C'});
+    saveData('relaciones',relaciones); renderRelaciones();
+  } else if(modalType==='cap') {
+    const newId = Math.max(0,...captaciones.map(r=>r.id))+1;
+    captaciones.push({...data,id:newId,valor:parseFloat(data.valor)||0});
+    saveData('captaciones',captaciones); renderCaptaciones();
+  } else if(modalType==='pre') {
+    const newId = Math.max(0,...prelisting.map(r=>r.id))+1;
+    prelisting.push({...data,id:newId});
+    saveData('prelisting',prelisting); renderPrelisting();
+  } else if(modalType==='comp') {
+    const newId = Math.max(0,...compradores.map(r=>r.id))+1;
+    compradores.push({...data,id:newId});
+    saveData('compradores',compradores); renderCompradores();
+  } else if(modalType==='gasto') {
+    const mes = document.getElementById('gasto-mes').value;
+    const lista = mes==='marzo' ? gastosMarzo : gastosAbril;
+    lista.push({fecha:data.fecha,cat:data.cat,monto:parseFloat(data.monto)||0});
+    saveData('gastos_'+mes, lista); renderGastos();
+  } else if(modalType==='regalo') {
+    const newId = Math.max(0,...regalos.map(r=>r.id))+1;
+    regalos.push({...data,id:newId});
+    saveData('regalos',regalos); renderRegalos();
+  }
+  closeModal();
+}
+
+// ── BOOT ─────────────────────────────────────────────────────────────
+initDate();
+renderDashboard();
+</script>
+</body>
+</html>
